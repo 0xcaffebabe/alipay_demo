@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>支付宝支付demo</title>
+</head>
+<body>
+<input type="text" id="title" placeholder="商品名称">
+<input type="text" id="price" placeholder="价格，单位：分">
+<button id="btn">创建订单</button>
+<div id="code"></div>
+<div id="tip"></div>
+</body>
+<script src="https://cdn.bootcss.com/jquery/3.4.1/jquery.min.js"></script>
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+
+<script src="/qrcode.js">
+
+</script>
+<script>
+    $("#btn").click(function () {
+        var title = $("#title").val();
+        var price = $("#price").val();
+
+
+        axios.post("/order", null, {params: {title: title, price: price}})
+            .then(function (resp) {
+                if (resp.data != null) {
+                    console.log(resp.data);
+
+                    var qrcode = new QRCode(document.getElementById("code"), {
+                        text: resp.data.qrcode,
+                        width: 128,
+                        height: 128,
+                        colorDark: "#000000",
+                        colorLight: "#ffffff",
+                        correctLevel: QRCode.CorrectLevel.H
+                    });
+                    setInterval(function () {
+                        axios.get("/order?orderId=" + resp.data.orderId)
+                            .then(function (r) {
+                                if (r.data == "WAIT_BUYER_PAY") {
+                                    $("#tip").text("等待付款");
+                                } else if (r.data == "TRADE_SUCCESS") {
+                                    $("#tip").text("交易成功");
+                                } else if (r.data == "TRADE_NOT_EXIST") {
+                                    $("#tip").text("买家还未扫码确认");
+                                }
+                            })
+                    }, 3000);
+
+                } else {
+                    alert("创建订单失败")
+                }
+            })
+
+    });
+
+</script>
+</html>
